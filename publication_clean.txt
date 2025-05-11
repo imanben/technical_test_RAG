@@ -1,0 +1,1420 @@
+JIAWEI GU1,*, XUHUI JIANG1,*, ZHICHAO SHI1,2,*, HEXIANG TAN2, XUEHAO ZHAI3,
+CHENGJIN XU1, WEI LI2, YINGHAN SHEN2, SHENGJIE MA1,4, HONGHAO LIU1,
+SAIZHUO WANG1,6,KUN ZHANG2, ZHOUCHI LIN1, YUANZHUO WANG2, LIONEL NI5,6,
+WEN GAO7,JIAN GUO1,†,
+1IDEA Research, International Digital Economy Academy, China
+2Institute of Computing Technology, Chinese Academy of Sciences , China
+3Department of Civil and Environmental Engineering, Imperial College London, UK
+4Gaoling School of Artificial Intelligence, Renmin University of China
+5The Hong Kong University of Science and Technology , China
+6The Hong Kong University of Science and Technology (Guangzhou) , China
+7Department of Computer Science and Technology, Peking University , China
+ABSTRACT
+Accurate and consistent evaluation is crucial for decision-making across numerous fields, yet it remains a
+challenging task due to inherent subjectivity, variability, and scale. Large Language Models (LLMs) have
+achieved remarkable success across diverse domains, leading to the emergence of "LLM-as-a-Judge," where
+LLMs are employed as evaluators for complex tasks. With their ability to process diverse data types and
+provide scalable and flexible assessments, LLMs present a compelling alternative to traditional expert-driven
+evaluations. However, ensuring the reliability of LLM-as-a-Judge systems remains a significant challenge
+that requires careful design and standardization. This paper provides a comprehensive survey on LLM-as-a-
+Judge, offering a formal definition and a detailed classification, while focusing on addressing the core
+question: How to built reliable LLM-as-a-Judge systems? We explore strategies to enhance reliability,
+including improving consistency, mitigating biases, and adapting to diverse assessment scenarios. Additionally,
+we propose methodologies for evaluating the reliability of LLM-as-a-Judge systems, supported by a novel
+benchmark designed for this purpose. To advance the development and real-world deployment of LLM-as-a-
+Judge systems, we also discussed practical applications, challenges, and future directions. This survey serves
+as a foundational reference for researchers and practitioners in this rapidly evolving field. The associated
+resources can be accessed at https://awesome-llm-as-a-judge.github.io/ .
+1
+INTRODUCTION
+Judgment is the faculty of thinking the particular as contained under the universal. It
+involves the capacity to subsume under rules, that is, to distinguish whether something
+falls under a given rule.
+—— Kant, Critique of Judgment , Introduction IV, 5:179; Critique of Pure Reason , A132/B171.
+Recently, Large Language Models (LLMs) have achieved remarkable success across numerous
+domains , ranging from technical fields  to the humanities 
+and social sciences . Building on their success, the concept of using LLMs as
+evaluators—commonly referred to as "LLM-as-a-Judge" —has gained significant attention,
+where LLMs are tasked with determining whether something falls within the scope of a given
+rule . This growing interest stems from LLMs’ ability to mimic human-like reasoning
+and thinking processes, enabling them to take on roles traditionally reserved for human experts
+while offering a cost-effective solution that can be effortlessly scaled to meet increasing evaluation demands. For instance, employing LLM-as-a-Judge in the academic peer-review1 process can help
+handle the rapid increase in submissions while maintaining expert-level judgment.
+Before the era of LLMs, finding a balance between comprehensive and scalable evaluation
+posed a persistent challenge. On the one hand, widely used subjective methods like expert-driven
+assessments  integrate holistic reasoning and fine-grained contextual understanding,
+making them the gold standard in comprehensiveness. However, these approaches are costly,
+difficult to scale, and susceptible to inconsistency. On the other hand, objective assessment methods,
+such as automatic metrics offer strong scalability and consistency. For example, tools such as
+BLEU  or ROUGE  can rapidly evaluate machine-generated translations or summaries
+against reference texts without human intervention. However, these metrics, which heavily rely on
+surface-level lexical overlaps, often fail to capture deeper nuances, resulting in poor performance
+in tasks like story generation or instructional texts . As a solution to this persistent dilemma,
+“LLM-as-a-Judge” has emerged as a promising idea to combine the strengths of the above two
+evaluation methods. Recent studies have shown that this idea can merges the scalability of automatic
+methods with the detailed, context-sensitive reasoning found in expert judgments . Moreover, LLMs may become sufficiently flexible to handle multimodal inputs  under
+appropriate prompt learning or fine-tuning . These advantages suggest that the LLM-as-a-Judge
+approach could serve as a novel and broadly applicable paradigm for addressing complex and
+open-ended evaluation problems.
+LLM-as-a-Judge holds significant potential as a scalable and adaptable evaluation framework
+compared to aforementioned two traditional methods . However, the widespread application
+of this idea is hindered by two key challenges. The first challenge lies in the absence of a systematic
+review, which highlights the lack of formal definitions, fragmented understanding, and inconsistent
+usage practices in the relevant studies. As a result, researchers and practitioners struggle to
+fully understand and apply effectively. The second challenge involves addressing concerns about
+reliability , as merely employing LLM-as-a-Judge does not ensure accurate evaluations aligned
+with established standards. These challenges emphasize the need for a deeper assessment of the
+outputs generated by LLM-as-a-Judge, as well as a crucial investigation into the question: How to
+build reliable LLM-as-a-Judge systems?
+To address these challenges, this paper provides a systematic review of research on LLM-as-a-
+Judge. It offers a comprehensive overview of the field and explores strategies for building reliable
+LLM-as-a-Judge systems. We begin by defining LLM-as-a-Judge through both formal and informal
+definitions, answering the foundational question: "What is LLM-as-a-Judge?" Next, we categorize
+existing methods and approaches, exploring "How to use LLM-as-a-Judge?". Following this, toFigure 2.
+tackle the critical question: "How to build reliable LLM-as-a-Judge systems?", we explore two core
+aspects: (1) strategies to enhance the reliability of LLM-as-a-Judge systems and (2) methodologies
+for evaluating the reliability of these systems. For the first aspect, we review key strategies to
+optimize the performance of LLM-as-a-Judge. For the second aspect, we examine the metrics,
+datasets, and methodologies used to evaluate LLM-as-a-Judge systems, highlighting potential
+sources of bias and methods for their mitigation. Building on this, we introduce a novel benchmark
+specifically designed for evaluating LLM-as-a-Judge systems. Additionally, we explore practical
+application scenarios and identify challenges unique to each context. Finally, we discuss future
+research directions, emphasizing key areas for improving reliability, scalability, and applicability.
+The rest of this survey is organized as Figure 1. Section 2 provides an overview of the LLM-as-
+a-Judge field, including its definitions and categorization of existing methods. For a quick guide
+on the implementation of an LLM as a judge for specific scenarios, you can find answers in Quick
+1https://blog.iclr.cc/2024/10/09/iclr2025-assisting-reviewers/
+. Practice (2.5). Strategies for enhancing and evaluating the reliability of LLM-as-a-Judge systems
+are discussed in Sections 3, 4, and 5, respectively. Notably, in Section 6, we discuss the synergy
+between LLM-as-a-Judge and o1-like reasoning enhancement, where dynamic feedback is used to
+optimize reasoning paths and significantly improve the model’s ability to solve complex problems.
+Section 7 explores practical applications, while Sections 8 and 9 address challenges and outline
+future research directions. Finally, Section 10 presents our conclusions.
+2
+BACKGROUND AND METHOD
+The capacity of LLMs to emulate human reasoning and evaluate specific inputs against a set of
+predefined rules has paved the way for "LLM-as-a-Judge." Existing studies indicate that LLM’s
+scalability, adaptability, and cost-effectiveness make them well-suited for managing a growing
+number of evaluative tasks that were traditionally done by humans. These abilities are key in
+utilizing LLMs flexibly across various evaluation scenarios and objectives. As a result, adoption
+of LLM in evaluation has progressed rapidly in practice. Initially, the primary focus of LLMs
+was on language generation and comprehension. With advancements in training paradigms like
+Reinforcement Learning from Human Feedback (RLHF) , LLMs became increasingly aligned
+with human values and reasoning processes. This alignment has allowed LLMs to transition from
+generative tasks to evaluative roles. At its core, LLM-as-a-Judge denotes the use of LLMs to evaluate
+objects, actions, or decisions based on predefined rules, criteria, or preferences. It encompasses a
+broad spectrum of roles, including: Graders , Evaluators/Assessors , Critics , Verifiers , Examiners , Reward/Ranking Models ,
+etc.
+Currently, the definition of how to effectively use LLM-as-a-Judge for evaluation tasks is largely
+informal or vague, lacking clear and formal expression. Therefore, we will start with a formal
+definition of LLM-as-Evaluator as follows:
+E ←PLLM (𝑥⊕C)
+• E: The final evaluation obtained from the whole LLM-as-a-Judge process in the expected
+manner. It could be a score, a choice, a label or a sentence, etc.
+• PLLM: The probability function defined by the corresponding LLM, and the generation is
+an auto-regressive process.
+• 𝑥: The input data in any available types (text, image, video), which waiting to be evaluated.
+• C: The context for the input 𝑥, which is often prompt template or combined with history
+information in dialogue.
+• ⊕: The combination operator combines the input 𝑥with the context C, and this operation
+can vary depending on the context, such as being placed at the beginning, middle, or end.
+The formulation of LLM-as-a-Judge reflects that LLM is a type of auto-regressive generative model,
+which generates subsequent content based on the context and then obtains target evaluation from it.
+It illustrates how we utilize LLM for evaluation tasks, encompassing input design, model selection,
+and training, as well as output post-processing. The basic approaches of implementing LLM-as-
+a-Judge can be classified according to the formulation: In-Context Learning, Model Selection,
+Post-processing Method, and Evaluation Pipeline, which concluded in Figure 2. By following this
+pipeline, one can build a basic LLM-as-a-Judge for evaluation. A quick practice guide is available in
+section 2.5.
+2.1
+In-Context Learning
+To apply LLM-as-a-Judge, evaluation tasks are typically specified using In-Context Learning meth-
+ods, which provide instructions and examples to guide the model’s reasoning and judgment. This
+process involves two key aspects: input design and prompt design. For input design, it is important
+to consider the type of variables to be evaluated (such as text, image, or video), the manner of input
+(e.g., individually, in pairs, or in batches), and its position (e.g., at the beginning, middle, or end).
+For the prompt design, four different methods can be adopted, as illustrated in Figure 2. These
+methods include generating scores, solving true/false questions, conducting pairwise comparisons,
+and making multiple-choice selections. Further details will be presented in the following sections.
+
+2.1.1
+Generating scores. It is quite intuitive to represent an evaluation using a corresponding
+score. What requires more careful consideration, however, is the nature and range of the score used
+for evaluation. The score can be discrete, with common ranges like 1-3, 1-5 , or 1-10 .
+Alternatively, it can be continuous, ranging from 0 to 1 or 0 to 100 . The simplest way to
+score is through the context, setting the range of scores and the main criteria for scoring. For
+example, "Please rate the helpfulness, relevance, accuracy, level of details of their responses. Each
+assistant receives an overall score on a scale of 1 to 10, where a higher score indicates better overall
+performance" . A slightly more complex way is to provide more detailed scoring criteria. More
+complex scoring situations can be as Language-Model-as-an-Examiner , which use Likert scale
+scoring functions as an absolute evaluative measure, showed in Figure 4. The evaluator assigns
+scores to a given response along predefined dimensions including accuracy, coherence, factuality
+and comprehensiveness. Each of these dimensions is scored on a scale of 1 to 3, ranging from worst to best. The evaluator is also asked to provide an overall score ranging from 1 to 5, based on the
+scores assigned to the previous 4 dimensions. This score serves as an indicator of the overall quality
+of the answer.
+2.1.2
+Solving Yes/No questions. A Yes/No question requires a judgment on a given statement,
+focusing solely on its accuracy. This type of question is simple and direct, providing only two fixed
+responses—yes or no, true or false—without any additional comparisons or choices.
+This type of evaluation is often utilized in intermediate processes, creating the conditions for a
+feedback loop. For example, it promotes a self-optimization cycle, as seen in Reflexion , which
+generates verbal self-reflections to provide valuable feedback for future attempts. In scenarios with
+sparse reward signals, such as a binary success status (success/fail), the self-reflection model uses
+the current trajectory and persistent memory to generate nuanced and specific feedback. Similarly,
+in self-improvement contexts , Yes/No questions can be employed to evaluate custom phrases,
+such as "Modification needed." and "No modification needed.", facilitating entry into the
+next cycle. Moreover, these evaluations are common for testing knowledge accuracy and assessing
+whether statements align with established facts , like "Given a question and the associated
+retrieved knowledge graph triples (entity, relation, entity), you are asked to answer whether it’s
+sufficient for you to answer the question with these triples and your knowledge (Yes or No)." A
+detailed and specific example can be seen in the Figure 5.
+2.1.3
+Conducting pairwise comparisons. Pairwise comparison refers to comparing two options
+and selecting which one is superior or more aligned with a specific standard, showed in Figure 6. It
+involves making a decision between two options rather than judgement between ’yes’ or ’no’. The
+comparison can be subjective or based on objective criteria. This evaluation is a relative evaluation.
+Pairwise comparison is often used for ranking multiple options or prioritizing them, where several
+comparisons are made between pairs to identify the better choice or establish a hierarchy.
+Pairwise comparison is a well-established method that has significantly impacted a variety of
+fields . As noted by , LLM and human evaluations are more aligned in the context of
+pairwise comparisons compared to score-based assessments. Numerous studies have demonstrated
+that pairwise comparative assessments outperform other judging methods in terms of positional
+. consistency . Furthermore, pairwise comparisons can be extended to more complex relation-
+based assessment frameworks, such as list-wise comparisons, using advanced ranking algorithms
+, data filtering . In pairwise comparative assessments, LLM-as-a-Judge is prompted to
+select the response that better answers the question at hand. To accommodate the possibility of
+a tie, several option modes are introduced. The Two-Option mode requires judges to choose the
+better response from two given options. The Three-Option mode introduces an additional choice,
+allowing judges to indicate a tie if neither response is preferable, as shown in Figure 9 (right).
+Evaluations typically involve determining the outcomes of win, tie, or loss for responses 
+through pairwise comparisons, with win rounds counted for each response. The Four-Option mode
+further expands the choices, allowing judges to classify responses as either a "both good tie" or a
+"both bad tie."
+2.1.4
+Making multiple-choice selections. Multiple-choice selections involve providing several
+options, not giving relative choices in pairwise comparison, nor making a yes/no judgment. The
+evaluator must choose the most appropriate or correct one. This method allows for a broader range
+of responses compared to true/false questions and can assess deeper understanding or preferences
+and an example is showed in Figure 7. However, this kind of prompt design is more rare than the
+first three.
+2.2
+Model Selection
+2.2.1
+General LLM. To automate evaluation by LLM-as-a-Judge, one effective approach is to
+employ advanced language models such as GPT-4  instead of human evaluators . For
+instance, Li et al.  created a test set with 805 questions and assessed the performance by
+comparing it to text-davinci-003 using GPT-4. Additionally, Zheng et al.  designed 80 multi-
+round test questions across eight common areas and used GPT-4 to automatically score the model’s
+. responses. The accuracy of the GPT-4-based evaluator has been demonstrated to be high compared
+to professional human evaluators, showing superior consistency and stability in evaluations. At the
+same time, if the general LLM used has limitations in instruction-following or reasoning abilities,
+the effectiveness of the LLM-as-a-Judge method may be significantly affected.
+2.2.2
+Fine-tuned LLM. However, relying on external API for evaluation may introduce con-
+sideration about privacy leakage, and the opacity of API models also challenges the evaluation
+reproducibility. Therefore, subsequent studies recommend refining language models tailored for
+evaluations by emphasizing the use of pairwise comparisons or grading. For instance, PandaLM
+ constructs data based on Alpaca instructions and GPT-3.5 annotation, and then fine-tunes
+LLaMA-7B  as an evaluator model. JudgeLM  constructs data from diversified instruction
+sets and GPT-4 annotations, and fine-tunes Vicuna  as a scalable evaluator model. Auto-J 
+constructs evaluation data upon multiple scenarios to train a generative evaluator model, which
+can provide both evaluation and critical opinion. Prometheus  defines thousands of evaluation
+criteria and constructs a feedback dataset based on GPT-4, and fine-tunes a fine-grained evaluator
+model.
+The typical process for fine-tuning a judge model involves three main steps as shown in Figure 8.
+Step 1: Data Collection. The training data generally consists of three components: instructions,
+the objects to be evaluated, and evaluations. Instructions are typically sourced from instruction
+datasets, while evaluations can come from either GPT-4 or human annotations. Step 2-Prompt
+Design. The structure of the prompt template can vary based on the evaluation scheme, which
+already detailed in § 2.1. Step 3: Model Fine-Tuning. Using the designed prompts and collected
+data, the fine-tuning process for the evaluator model typically adheres to the instruction fine-tuning
+paradigm . The model receives an instruction along with one or more responses to generate
+output that includes evaluation results and possibly explanations.
+After fine-tuning, the evaluator model can be employed to evaluate the target object. While
+these fine-tuned models often demonstrate superior performance on self-designed test sets, they
+are identified several limitations in their evaluation capabilities,which detailed in Section 4.2.
+The current prompt and fine-tuning dataset designs often result in evaluation LLMs with poor
+generalization, making them difficult to compare with strong LLMs like GPT-4.
+2.3
+Post-processing Method
+Post-processing refines the probability distributions generated by LLM-as-a-Judge to ensure ac-
+curate evaluations. The evaluation format should align with our In-Context Learning design and
+may involve procedures to enhance the reliability of extracted evaluations, which should be ap-
+plied consistently. We focus on three main post-processing methods: extracting specific tokens,
+normalizing the output logits, and selecting sentences with high returns.
+However, it is important to note that each method has significant limitations when evaluating
+objective questions. For example, in text response evaluation , failing to accurately extract
+the key answer token from the LLM’s response can result in incorrect evaluation outcomes. These
+challenges in post-processing are tightly linked to the prompt design used in earlier ICL stages and
+the selected model’s ability to follow instructions reliably.
+2.3.1
+Extracting specific tokens. As showed in In-context Learning (Section 2.1), when the
+evaluation target take the form of a score, selecting specific options, or responding with Yes/No,
+applying rule-match to extract the corresponding token from the response generated during
+probability distribution iteration is common used. It is worth noting that Yes/No is a broad definition,
+including custom statements involving judgment. Considering a Yes/No question for evaluation in
+. custom phrases : "Modification needed." and "No modification needed." or a yes-no
+question "Does the above answer need to be further modified?". When the input sample
+is put through the template, it might have outputs such as "Modification needed.", "Conclusion:
+Modification needed." or "Yes". This variance in response formats is difficult to parse consistently.
+The corresponding post-processing with the response is necessary. Using rules to extract specific
+tokens for our designed prompts and input content, as well as the backbone model used for the
+evaluator, all have higher requirements as we discussed in Section 2.2. In contextual learning, if
+there is no clear indication of the output format for response, there may be various expressions of
+evaluation, which can be seen in Figure 2. For example, "Response 1 is better" and "The better one
+is response 1", which convey the same choice but differ in format leading to the difficulty of rule
+recognition. Simple solutions often involve providing clear instructions, such as "The last sentence
+should be started with ’The better response is’", or using a few-shot strategy. Also, the general
+model with insufficient instruction following capability may not be able to generate the evaluation
+format and content of the target according to the instruction, resulting in the post-processing
+extracted according to the rules not as smooth as expected.
+2.3.2
+Constrained decoding. Constrained decoding is a technique that enforces structured out-
+put from Large Language Models (LLMs) by restricting token generation according to predefined
+schemas, typically in formats like JSON. This approach uses a finite state machine (FSM) to compute
+valid next tokens at each decoding step, effectively masking the model’s output probability distri-
+bution to ensure conformity with the desired schema. While this method guarantees syntactically
+valid outputs, it presents several challenges: it can distort the model’s learned distribution and
+potentially degrade output quality, requires significant engineering implementation effort, and
+introduces computational overhead during inference.
+Recent work has proposed various solutions to address these challenges.  introduce DOMINO,
+a decoding algorithm that preserves natural tokenization while enforcing constraints. Their system
+minimizes overhead through precomputation and speculative decoding, sometimes achieving faster
+performance than unconstrained decoding.  develop XGrammar, which accelerates grammar-
+constrained generation by separating tokens into those that can be pre-checked and those requiring
+runtime verification. By co-designing the grammar engine with LLM inference, they achieve
+up to 100x speedup over existing approaches. present SGLang, combining a domain-specific
+language with an optimized runtime. Their system features efficient KV cache reuse and compressed
+finite state machines for faster decoding, demonstrating that thoughtful co-design of programming
+model and runtime can minimize constrained decoding overhead.
+2.3.3
+Normalizing the output logits. LLM-as-a-Judge in the intermediate steps with Yes/No
+setting often normalize the output logits to obtain the evaluation in the form of a continuous decimal
+between 0 and 1. This is also very common in agent methods and prompt-based optimization
+methods . For example, the self-consistency and self-reflection scores  within
+one forward pass of MEvaluator, are effectively obtained by constructing a prompt [(𝑥⊕C) , "Yes"]
+and acquire the probability of each token conditioned on the previous tokens 𝑃(𝑡𝑖|𝑡<𝑖). The auto-
+regressive feature is leveraged, thus aggregate the probability of the relevant tokens to compute the
+self-consistent score 𝜌Self-consistency and self-reflection score 𝜌Self-reflection.
+. In addition, Self-evaluation  is also common using this method for LLM-as-a-Judge. It can be
+helpful to let the LLM evaluate itself by asking, "Is this reasoning step correct?" and then reward it
+based on the probability of the next word being "Yes."
+2.3.4
+Selecting sentences. In addition to selecting specific tokens and normalizing the output
+logits, the content extracted by LLM-as-a-Judge may also be a sentence or paragraph. As showed
+in Figure 2, agent for reasoning task , builds a reasoning tree by iteratively considering the
+most promising reasoning steps (actions, sub-questions) by LLM-as-a-Judge.
+2.4
+Evaluation Pipeline
+After completing the three processes, we obtain the final evaluation E. From input to output, these
+steps collectively constitute the LLM-as-a-Judge evaluation pipeline, as illustrated in Figure 2. This
+pipeline is commonly applied in four scenarios shown in Figure 8.
+2.4.1
+LLM-as-a-Judge for Models. It is universally known that the best way to evaluate LLMs is
+human judgment, but collecting human annotations can be costly, time-consuming, and laborious
+. Using strong LLMs (usually closed-source ones, e.g., GPT-4, Claude, ChatGPT) as an
+automated proxy for assessing LLMs has become a natural choice , as shown in Figure 9.
+. With appropriate prompt design, the quality of evaluation and agreement to human judgment
+can be promising . However, the cost concern still exists when calling the APIs
+of these proprietary models, especially when there is a frequent need for model validation on
+large-scale data. Moreover, closed-source LLM-as-a-Judge leads to low reproducibility due to
+potential changes in models behind the API. Some recent works have started to make attempts for
+open-source alternatives. SelFee  collects generations, feedback, and revised generations from
+ChatGPT and fine-tunes LLaMA models to build a critique model. Shepherd  trains a model
+that can output critiques for single-response with the data of feedback from online communities
+and human annotation. PandaLM  trains a model to conduct pairwise comparison for LLM
+Instruction Tuning Optimization, and Zheng et al.  also fine-tune Vicuna  on a 20K
+pairwise comparison dataset to explore the potential of open-source models as a more cost-friendly
+proxy.
+2.4.2
+LLM-as-a-Judge for Data. Data annotation generally refers to the labeling or generating
+of raw data with relevant information, which could be used for improving the efficacy of machine
+learning models. The process, however, is labor-intensive and costly. The emergence of LLMs
+presents an unprecedented opportunity to automate the complicated process of data annotation by
+LLM-as-a-Judge. Most of the data need to be evaluated by LLM-as-a-Judge is generated by models,
+or large-scale crawled data. Language models first conduct supervised fine-tuning to imitate how to
+align with human instructions . After that, reinforcement learning techniques have been
+explored to align language models with human preferences . The most successful way is
+applying a RLHF framework  via training a reward model on human feedback and using PPO
+ to obtain the policy model for language generation. However, in practices, the PPO training
+paradigm is complex in coding and hyper-parameter tuning while it needs four models that are
+hard for training. This motivates us to explore simpler and more straightforward methods to align
+language models with human preferences. This involves how to use LLM-as-a-Judge to evaluate
+whether different responses are aligned with human preferences. For example,  use general
+LLM (ChatGPT) to get better alignment with human preferences. The Aplaca prompts  is
+used as sampling queries to different models generate responses. And these data was evaluated
+by LLM-as-a-Judge to obtain human preference scores (reward score) to train a new language
+model. Other works would like to use Supervised Fine-Tuning (SFT) model itself as evaluator, like
+generating better-aligned datasets for SFT including hindsight-modified prompts  and
+principle-driven self-alignment .
+In addition, the lack of domain-specific model training data is a common phenomenon. In order to
+obtain annotated high-quality data, it is also very common to use LLM-as-a-Judge for the generation
+and evaluation of domain data. WizardMath  would use its Instruction Reward Model (IRM) as
+Evaluator, aiming to judge the quality of the evolved instructions on three aspects: i) Definition, ii)
+Precision, and iti) Integrity. To produce the ranking list training data of IRM, for each instruction,
+ChatGPT and Wizard-E are used to generate 2-4 evolved instructions respectively. Then we leverage
+Wizard-E to rank the quality of those 4-8 instructions.
+However, solely relying on LLM-as-a-Judge for data annotation poses challenges, particularly
+as the value of annotated data diminishes with the rapid improvement of model performance.
+To address this, approaches like Self-Taught Evaluator  offer a promising alternative by
+eliminating the need for human annotations. This method leverages synthetic training data, starting
+with unlabeled instructions and generating contrasting outputs from models. These outputs are
+then used to train an LLM-as-a-Judge to produce reasoning traces and final judgments. With
+each iteration, the evaluator improves by learning from its refined predictions, creating a cycle of
+. continuous self-enhancement. This iterative approach not only keeps annotations relevant but also
+ensures that evaluators evolve alongside advancing models.
+Recent research on evaluating multimodal data focuses on addressing vision-language misalign-
+ments in Multimodal Large Language Models (MLLMs), which often cause hallucinations—outputs
+inconsistent with visual or contextual evidence . Techniques like Reinforcement Learn-
+ing from Human Feedback (RLHF) and Factually Augmented RLHF have been employed to improve
+model alignment by incorporating structured ground-truth data and image captions, enhancing
+hallucination detection . Benchmarks such as MLLM-as-a-Judge  assess these models using
+tasks like scoring, pair comparison, and batch ranking, revealing limitations in alignment with
+human preferences. Persistent issues include biases (e.g., position, verbosity) and hallucinations,
+with even advanced models like GPT-4V displaying challenges. While pair comparison tasks align
+better with human judgment, scoring and batch ranking require significant improvements for
+reliable deployment. These findings emphasize the need for innovative frameworks and datasets to
+refine MLLM evaluation and alignment.
+2.4.3
+LLM-as-a-Judge for Agents. There are two ways to apply LLM-as-a-Judge for an agent.
+One is to evaluate the entire process of the intelligent agent , and the other is to evaluate it at
+a specific stage in the agent framework process . Both approaches are briefly illustrated in
+Figure 10. Using LLM as the brain of agent, an agentic system  could evaluate like a human, it
+would reduce the need for human involvement and eliminate the trade-off between thoroughness
+and effort. In addition, the agent  can interact with the environment through language and
+receive feedback on actions through LLM to make decisions for the next action.
+2.4.4
+LLM-as-a-Judge for Reasoning/Thinking. Reasoning , defined as the cognitive pro-
+cess of applying logic, arguments, and evidence to draw conclusions, is central to intellectual tasks
+such as decision-making, problem-solving, and critical analysis. While reasoning is inherently
+more demanding and multifaceted than judging, it often depends on judgments to ensure logical
+coherence, refine intermediate steps, and achieve clarity in its outcomes. LLM-as-a-Judge, in this
+sense, becomes an integral tool for enhancing the reasoning capability of LLM.
+. The role of LLM-as-a-Judge in enhancing reasoning or thinking can be understood through
+two frameworks: scaling training time  and scaling test time . In the training phase,
+LLM-as-a-Judge frequently operates within reinforcement learning paradigms, where it functions
+as a reward model or evaluator for data or processes. This enables the creation of high-quality
+reasoning datasets through mechanisms such as step-by-step verification , Direct Preference
+Optimization(DPO) , and self-refinement . Recently, several LLMs trained with reinforce-
+ment learning to exhibit advanced reasoning and thinking abilities have gained attention, such as
+o12, DeepSeek-R13,gemini-thinking4, and QVQ5. In the test-time framework, LLM-as-a-Judge is
+crucial for evaluating and selecting the best reasoning paths. For example, in "Best-of-N" gener-
+ation scenarios, where multiple reasoning outputs are produced, the judge determines the most
+accurate and coherent response. This dual role in both training and test phases demonstrates the
+indispensable nature of LLM-as-a-Judge in enhancing reasoning systems.
+2.5
+To effectively apply LLM-as-a-Judge design, it is recommended to find more effective config-
+urations in the testing cycle for various scenarios. The success of using LLM-as-a-Judge also
+heavily depends on the implementation details, including the task complexity, the prompt design,
+the model selected, and the post-processing method. As shown in Figure 11, The process of quick
+practice for LLM-as-a-Judge involves four main stages. First is the thinking phase, in which
+users define the evaluation objectives by determining what needs to be evaluated, understanding
+typical human evaluation approaches, and identifying some reliable evaluation examples. Next
+is prompt design, detailed in Section 2.1, both wording and formats matter. The most efficient
+and generally effective approach involves specifying scoring dimensions, emphasizing relative
+comparisons for improved assessments, and creating effective examples to guide the LLM. The
+third stage, model selection (Section 2.2), focuses on choosing a large-scale model with strong
+reasoning and instruction-following abilities to ensure reliable evaluations. Finally, standardizing
+the evaluation process ensures that the outputs are structured (Section 2.3). This can be achieved
+by using specific formats like \boxed{XX}, numerical scores, or binary responses (e.g., "Yes" or "No").
+The entire process includes iterative testing with cases and refinement through retesting thereby
+enhancing reliability. During development, it is essential to compare models or prompts and verify
+ongoing improvements.
+3
+IMPROVEMENT STRATEGY
+When directly utilizing LLMs to conduct evaluation tasks—such as scoring, selection, pairwise com-
+parison, or ranking—their inherent biases of LLMs like length bias, position bias, and concreteness
+bias will undermine evaluation outcomes. Mitigating these inherent biases and improving
+the overall evaluation performance of LLMs remains a critical challenge for applying LLMs as
+evaluators. In this section, we introduce three improvement strategies to boost the evaluation
+performance of LLM-as-a-judge: design strategy of evaluation prompts (in-context learning based),
+improvement strategy of LLMs’ evaluation capabilities (model-based), and optimization strategy of
+final evaluation results (post-processing based). As shown in Figure 12, our categorization is based
+on the formal definition of LLM-as-a-judge in Section 2, focusing on enhancing the evaluation
+effectiveness by targeting three key phases of the process: the context C, the abilities of LLMs
+themselves PLLM and the post-processing ←to obtain the final results E
+3.1
+Design Strategy of Evaluation Prompts
+An evaluation prompt is an input to LLM evaluators, which is used to guide the LLMs to complete
+the required evaluation tasks. LLMs possess in-context learning ability, enabling them to learn how
+to perform specified tasks from relevant examples or instructions in prompts, without requiring
+weight updates or retraining. This suggests that the design strategy of evaluation prompts
+will significantly impact the effectiveness of LLM-as-a-judge. Therefore, optimizing the design
+of evaluation prompts, including better methods to help LLMs interpret the evaluation tasks and
+generate results, is the most direct and effective way to boost the evaluation performance of
+LLM-as-a-judge.
+3.1.1
+Optimizing LLMs’ Understanding of Evaluation Tasks. In optimization methods of
+prompting LLMs to better understand evaluation tasks, one of the most commonly used and
+effective approaches is few-shot prompting. By incorporating several high-quality evaluation
+. examples into the evaluation prompts, LLM evaluators can effectively grasp the objectives, general
+processes, and rough evaluation criteria of evaluation tasks. Many research works employ this
+prompt paradigm for evaluation, such as FActScore, SALAD-Bench, and GPTScore.
+In addition to providing high-quality examples for LLMs, refining the evaluation task instructions
+is also an effective approach to optimize LLMs’ understanding of evaluation tasks. Current methods
+for refining evaluation tasks mainly include the decomposition of evaluation steps and criteria:
+(a) Decomposition of Evaluation Steps entails breaking down the entire evaluation tasks
+into smaller steps, providing detailed definitions and constraints for each small step in prompts,
+thereby guiding LLMs comprehensively through the whole evaluation pipeline. For instance, G-
+Eval and DHP use Chain-of-Thought(CoT) to guide LLMs. SocREval employs
+the Socratic method to meticulously design each step to enhance evaluation performance. Saha et
+al. propose Branch-Solve-Merge(BSM), which divides evaluation tasks into multiple parallel
+sub-tasks for separate evaluation and final merge. (b) Decomposition of Evaluation Criteria
+involves breaking down coarse evaluation criteria like Fluency into finer-grained sub-criteria
+like Grammar, Engagingness, and Readability, and then generating overall scores based on these
+different dimensions. HD-Eval iteratively aligns LLM evaluators with human preference via
+hierarchical criteria decomposition thereby addressing the potential bias in LLMs. Hu and Gao et
+al. summarize and clearly define an explicit hierarchical classification system encompassing
+11 criteria, addressing the issue of LLMs potentially confusing different evaluation standards.
+These refinements are specific to enable LLMs to understand the details of evaluation tasks more
+deeply, thereby aligning evaluation results more closely with human evaluation requirements and
+preferences.
+Furthermore, the evaluation capabilities can be optimized based on specific shortcomings of
+LLMs in prompts. For instance, to address specific biases like position bias which is common
+in pairwise evaluations, several research efforts have optimized prompts design by randomly
+swapping contents to be evaluated. Wang et al. analyzed and validated the impact of position
+bias on LLM-as-a-judge and proposed a calibration framework to mitigate this bias by swapping
+the contents and averaging the scores. Auto-J and JudgeLM also enhance the evaluation
+consistency by shuffling the texts to be evaluated. In contrast to averaging scores, PandaLM
+annotates the conflicting evaluation results after swapping as "Tie" to address the position bias.
+To address the challenge of LLMs’ absolute scoring being less robust than relative comparing,
+some research works convert scoring tasks into pairwise comparison, thereby enhancing the
+reliability of evaluation results. Liu et al. transform the scoring evaluation to ranking evaluation
+and introduce Pairwise-Preference Search (PARIS), which employs LLMs to conduct pairwise
+comparisons locally and efficiently ranks candidate texts globally, making evaluation results more
+aligned with human preferences.
+In summary, the design of prompts for better understanding evaluation tasks is a core method
+for optimizing LLMs’ in-contextual learning abilities. By refining evaluation task instructions and
+criteria in prompts or few-shot prompting with high-quality examples, the details of evaluation
+prompts can be enriched and the understanding of LLMs on evaluation tasks can be directly or
+indirectly enhanced. Additionally, targeted adjustments to prompts can address potential biases of
+LLMs such as position bias.
+3.1.2
+Optimizing LLMs’ Output Forms. Directly requiring LLM evaluators to output evaluation
+results poses robustness problems. The response text may unexpectedly vary due to the inherent
+generative randomness of LLMs, such as outputting text like "low relevance" while asked to measure
+it with discrete scores, which hinders the automated and accurate extraction of evaluation results
+from LLMs’ output. An effective method to enhance the robustness of output forms is to constrain
+. LLMs’ output in structured formats within prompts. G-Eval and DHP framework perform
+evaluation tasks with a form-filling paradigm, constraining outputs with formats like "X: Y", where
+X represents the dimension or metric to be evaluated and Y denotes an identifiable output form
+like scores or specific tokens. LLM-EVAL further modifies this form-filling paradigm, efficiently
+outputs evaluation results in JSON format, and obtains multidimensional scores, leveraging LLMs’
+high understanding and generation capabilities of code-like textural formats.
+Apart from challenges in robustness, directly outputting evaluation results by LLMs also suffer
+from the lack of interpretability. The meaning of evaluation results from LLM evaluators is difficult
+to align consistently with instructions and metrics provided in prompts. To address the challenges,
+CLAIR requires LLMs to output evaluation scores between 0-100 simultaneously with relevant
+reasons as explanations in JSON format, which enhances the rationality and interpretability of the
+scores. FLEUR utilizes LLaVA to first provide quality scores for image captions and subsequently
+asks with "Why? Tell me the reason." for explanations with the images, captions, and scores as
+inputs, offering a stepwise approach to provide interpretable scores.
+In general, by constraining or guiding the output process and format of LLM evaluators within
+prompts, the robustness and rationality of evaluation results can be effectively improved through
+structured outputs. This also facilitates the automated post-processing of evaluation results in
+subsequent steps, thereby enhancing the overall stability of the evaluation pipeline.
+3.2
+Improvement Strategy of LLMs’ Abilities
+The evaluation capabilities of LLMs are a reflection of their powerful general language under-
+standing and generation abilities triggered by specific prompts. Methods for optimizing evaluation
+through prompt design–focused on LLMs’ in-contextual learning capabilities–require LLMs to
+fully comprehend the meaning of prompts and consistently follow the relevant evaluation instruc-
+tions. However, even state-of-the-art LLMs like GPT-4 encounter problems such as conceptual
+confusion, and smaller open-source LLMs have even more limitations in their evaluation ca-
+pabilities. Consequently, refining the evaluation capabilities of LLMs, including how to fine-tune
+LLMs through meta-evaluation datasets and how to iteratively optimize models based on the
+feedback of evaluation results, is significant for improving the fundamental evaluation performance
+of LLM-as-a-judge.
+3.2.1
+Fine-tuning via Meta Evaluation Datasets. A straightforward approach to enhancing
+the evaluation capabilities of LLMs is to fine-tune them via meta-evaluation datasets specifically
+constructed for evaluation tasks, which helps improve the LLMs’ understanding of specific evalua-
+tion prompts, boosts the evaluation performance, or addresses potential biases. The most critical
+step in this optimization strategy is the collection and construction of training data. A common
+method involves sampling evaluation questions from publicly available datasets, modifying them
+with certain templates, and supplementing the dataset with evaluation responses generated either
+manually or by powerful LLMs like GPT4. For instance, PandaLM samples inputs and instruc-
+tions from Alpaca 52K and generates responses using GPT-3.5 to construct training data, while
+SALAD-Bench builds its training data from a subset of LMSYS-Chat and Toxicchat.
+To better align with the requirements of evaluation tasks, many research works further transform
+inputs and instructions sampled from public datasets to construct more targeted training data.
+OffsetBias aims to reduce biases of LLMs by using GPT4 to generate off-topic versions of the
+original inputs and then having GPT-3.5 respond to the new inputs to produce bad responses. By
+pairing good and bad responses as training data to fine-tune the LLMs as evaluators, the biases in
+LLMs are significantly reduced, including length bias, concreteness bias, knowledge bias, and so
+on. JudgeLM enhances LLMs’ evaluation capabilities by creating different types of training
+. data through paradigms like reference support and reference drop. CritiqueLLM proposes a
+multi-path prompting approach, combining pointwise-to-pairwise and referenced-to-reference-free
+prompting strategies to restructure referenced pointwise grading data into four types, which helps
+create Eval-Instruct to fine-tune LLMs, addressing shortcomings in pointwise grading and pairwise
+comparison.
+In summary, constructing meta-evaluation training data targeted at specific evaluation tasks and
+fine-tuning LLMs can directly adjust the model’s internal parameterized knowledge and language
+abilities. This is the most straightforward method to improve the evaluation performance of LLM
+evaluators and address potential biases.
+3.2.2
+Iterative Optimization Based on Feedback of Evaluation Results. Fine-tuning LLMs
+on meta-evaluation datasets gives them the ability to produce evaluations that are more aligned
+with human preferences. However, LLM-as-a-judge may still introduce biases during the evaluation
+process in practice, which can impact the overall evaluation quality. A natural improvement strategy
+is to iteratively optimize the model based on the feedback of evaluation results, which mainly comes
+from stronger models or directly from human evaluators’ correction of the evaluation results.
+A typical example is INSTRUCTSCORE. To improve model performance and further benefit
+the final quality score calculation, this scoring framework collects failure modes of metric outputs,
+queries GPT-4 on each failure mode to gather automatic feedback, and finally selects explana-
+tions most aligned with human preferences to iteratively fine-tune the LLaMA model. Unlike
+INSTRUCTSCORE which directly optimizes the model, the LLM evaluator in JADE relies
+on human judges to correct LLMs’ evaluation results and updates the most frequently corrected
+samples into the example sets for few-shot prompting. JADE utilizes this relatively low-cost method
+to achieve iterative updates of the evaluation capabilities.
+Since the feedback is more closely aligned with human preferences, LLM evaluators can dynami-
+cally align with humans when optimizing evaluation capabilities based on this feedback, leading to
+better evaluation results. This feedback-based iterative optimization strategy addresses the problem
+of models’ imperfect generalization and improves the evaluation capabilities through dynamic
+updates.
+3.3
+Optimization Strategy of Final Results
+Through optimization based on in-context learning and the model’ own capabilities, LLMs have
+become fairly reliable evaluators that are capable of understanding evaluation task requirements
+and providing rational evaluation results. However, the inherent generation randomness within
+the black box of LLMs still introduces significant instability to the entire evaluation pipeline, affect-
+ing the overall evaluation quality. Therefore, optimization strategies during the post-processing
+stage from LLM evaluators’ outputs to final evaluation results are necessary. In this survey, these
+optimization strategies are categorized into three types: integration of multiple evaluation results,
+direct optimization of LLMs’ outputs, and conversion of evaluation tasks from pointwise evaluation
+to pairwise comparison.
+3.3.1
+Integration of Multiple Evaluation Results. Integrating multiple evaluation results for
+the same content to obtain the final result is a common strategy in various experiments and
+engineering pipelines, which can reduce the impacts of accidental factors and random errors. The
+most basic optimization strategy is to perform multiple runs of evaluation on the same content
+with different hyper-parameters and settings, and then summarize these results. For example, the
+work of Sottana et al. reduces randomness in evaluations by averaging multiple scores of
+the same sample. Similarly, PsychoBench takes the mean and standard deviation from ten
+. independent runs. Auto-J further amplifies the differences between evaluation rounds, which
+combine critiques with and without scenario criteria to obtain the final results.
+In addition to integrating results from multiple rounds of evaluation, using multiple LLM evalua-
+tors to assess the contents simultaneously and integrating the results is another effective method,
+which can reduce biases introduced by LLMs. For instance, CPAD utilizes ChatGLM-6B,
+Ziya-13B, and ChatYuan-Large-v2 as evaluators to evaluate the contents and obtain the
+final results by voting. Bai et al. propose a novel evaluation method called decentralized peer
+review of LLMs, which utilizes LLMs that generate contents to evaluate each other’s generated
+contents and eventually integrate the results.
+In summary, forming the final evaluation results by combining multiple rounds of evaluations or
+multiple LLM evaluators can reduce the random effects caused by accidental factors in a single
+round and reduce the potential biases of a single LLM evaluator. This strategy significantly enhances
+the stability and reliability of the evaluation results.
+3.3.2
+Direct Optimization of LLMs’ Outputs. Different from obtaining evaluation results
+based on the outputs of multiple rounds or LLMs, directly optimizing the output of a single LLM
+evaluator involves further processing the evaluation output to make it more reliable, especially
+when dealing with scoring outputs from LLM evaluators. Due to the inherent randomness in LLMs’
+generation, the scores may not fully reflect the LLMs’ complete view of the evaluation criteria.
+Therefore, to obtain more reliable evaluation results, it is necessary to optimize the LLM’s score
+outputs. An effective optimization strategy is to combine the implicit logits which capture the LLMs’
+randomness with the explicit output scores. For example, FLEUR proposes a score smoothing
+strategy. For scores generated by LLaVA, the probability of the token corresponding to each digit
+𝑙(0≤𝑙≤9) would be used as the weight to smooth the explicit scores and calculate the final
+evaluation scores.
+However, methods like score smoothing, which combine implicit logits and explicit outputs
+require the LLMs to be open-source or to provide interfaces that allow access to token probabilities,
+which brings some limitations. Inspired by the work of Weng et al. and Madaan et al.,
+self-verification can be used to filter out the evaluation results without sufficient robustness. For
+example, TrueTeacher applies self-verification in its evaluation of distilled data by asking the
+LLM evaluator for its certainty about the evaluation results after providing them and retaining
+only those results that pass self-verification. Self-verification is suitable for all LLMs and requires
+no complex computing and processing.
+In summary, compared to integrating multiple evaluation results, directly optimizing the LLMs’
+outputs to obtain the final results is faster and more low-cost, although the effectiveness still
+needs further validation. However, these two approaches are not mutually exclusive. Performing
+integration after direct optimization of LLMs’ output may lead to more stable evaluation results.
+4
+EVALUATION OF LLM EVALUATORS
+Despite their impressive performance, LLMs exhibit several notable shortcomings, such as hallucina-
+tions , biases , and a lack of robustness . When LLMs are employed as evaluators, these
+inherent issues can lead to suboptimal evaluation outcomes. Therefore, it is crucial to accurately
+and comprehensively assess the quality of LLM-as-a-judge and identify potential vulnerabilities.
+This section will review existing work on the evaluation of LLM-as-a-judge, focusing on three key
+areas: base metric (Section 4.1), bias (Section 4.2), and robustness (Section 4.3).
+4.1
+Basic Metric
+The main objective of LLM-as-a-judge is to achieve alignment with human judges. Numerous
+studies approach this by considering the LLM evaluator as a virtual annotator and evaluating the
+extent of its agreement with human annotators. The percentage agreement metric represents the
+proportion of samples on which LLM and human annotators agree .
+Agreement =
+Í
+𝑖∈D I(Sllm = Shuman)
+∥D∥
+where D is the dataset, 𝑆llm and 𝑆human is the evaluation result of LLM evaluator and human judge
+respectively, which can be in the form of both score or rank. Additionally, widely used correlation
+metrics such as Cohen’s Kappa  and Spearman’s correlation  are also employed to
+access agreement. Other works treat the LLM-as-a-judge task as a classification problem, where
+human annotations serve as the labels, and compute precision, recall, and F1 scores to evaluate the
+performance .
+Datasets. Both of above metrics rely on the datasets with LLM-generated response and re-
+sponding human judgments. Therefore, there is also a practical need to construct a comprehensive
+benchmark for the meta-evaluation. We list the existing benchmarks and their statistics in Table 1.
+MTBench  has only 80 human-crafted queries with their responding human annotation and
+LLMs’ responses. FairEval  is constructed from the 80 queries from VicunaBench  with
+human annotated preference between ChatGPT and Vicuna responses. Chatbot Arena Conversa-
+tions  is a larger collection of crowdsourced data (about 30k) with human annotated preference.
+Research  construct a benchmark to access the capability of LLM evaluator in evaluating
+whether a response is following the instruction. This dataset contains human-curated 419 pairs
+of outputs, one adhering to instructions while the other diverging, yet may possess deceptive
+qualities that mislead an LLM evaluator. Research  evaluate the capabilities of multi-modal
+LLMs in assisting evaluation tasks across various modalities and introduce MLLM-as-a-Judge, a
+comprehensive multi-modal benchmark. Recent advances also expand the scope of meta-evaluation
+benchmarks to specialized domains, including code assessment  and non-English language
+. tasks . Furthermore, CALM  presents a systematic framework for bias quantification,
+featuring an automated perturbation mechanism to generate meta-evaluation data for examining
+12 distinct types of potential biases in LLM evaluators.
+Current meta-evaluation primarily focuses on LLM-as-a-judge for models, while there is a lack of
+sufficient meta-evaluation when these LLM evaluators are used for automatically annotating large-
+scale datasets (Section 2.4.2). We advocate for more rigorous assessment of the alignment between
+LLM-as-a-judge and human judgment when they are employed for large-scale data annotation.
+Additionally, it is also crucial to assess the potential bias and robustness, which will be discussed in
+the following sections.
+4.2
+Bias
+Previous reviews have highlighted that large language models exhibit various types of biases across
+various tasks . These internal biases of LLMs may also affect LLM-as-a-judge, leading
+to unfair evaluation outcomes and subsequently impacting the development of LLMs. Therefore, it
+is crucial to understand the types of biases that LLM evaluators might possess and to systematically
+assess these biases. In this section, we systematically review various types of biases in the LLM-
+as-a-judge context, including their definitions, relevant metrics, and datasets that can be used for
+evaluation.
+The meta-evaluation of LLM-as-a-judge introduces systematic biases that can be broadly catego-
+rized into two classes: task-agnostic biases inherent to LLMs across general applications, and
+judgment-specific biases unique to LLM-as-a-judge scenarios. This taxonomy aims to clarify
+their distinct characteristics and implications.
+4.2.1
+Task-Agnostic Biases. These biases manifest across diverse LLM applications, including open-
+domain QA, classification, and summarization. However, when arising in the LLM-as-a-judge, the
+biases are particularly critical due to their cascading effects on downstream tasks. When LLM-
+generated judgments serve as feedback for model training or data annotation, these biases risk
+being amplified and propagated. We present a few typical examples and recommend consulting
+comprehensive reviews on language model bias  for a more thorough understanding.
+Diversity Bias refers to bias against certain demographic groups , including certain genders
+, race, and sexual orientation . In the context of LLM-as-a-judge scenarios, this bias may
+appear when evaluators give higher scores to responses that align with stereotypes of certain
+groups.
+. Cultural Bias. In general domains, cultural bias refers to situations where models might misin-
+terpret expressions from different cultures or fail to recognize regional language variants . In
+the context of LLM-as-a-judge, it indicates that evaluators might score expressions from unfamiliar
+cultures poorly.
+Self-Enhancement Bias describe the phenomenon that LLM evaluators may prefer response
+generated by themselves . This bias has also been known as source bias in retrieval
+task  and open-domain question answering systems . Considering the significant self-
+enhancement bias, as suggested in , we should avoid using the same model as the evaluator.
+This is only a stopgap, as we may not use the optimal evaluator when evaluating the most advanced
+LLMs.
+4.2.2
+Judgment-Specific Biases. Judgment-specific biases are either unique to the LLM-as-a-judge
+setting or have a significant impact on judgment tasks. A classic example is the "position bias",
+which has a more pronounced effect in the context of LLM-as-a-judge where the evaluator often
+need to compare pairwise responses. Different from task-agnostic biases, judgment-specific biases
+are more difficult to resolve naturally with the development of foundational large model capabilities
+and require targeted optimization for judgment tasks.
+Position Bias is the tendency of LLM evaluators to favor responses in certain positions within
+the prompt . This bias may have detrimental effects, as Vicuna-13B could
+outperform ChatGPT when evaluated by ChatGPT, simply by positioning the response of Vicuna-
+13B in the second place . To measure this bias, recent work  proposed two metrics:
+Position Consistency, which quantifies how frequently a judge model selects the same response
+after changing their positions, and Preference Fairness, which measures the extent to which
+judge models favor response in certain positions. The study  also introduced a metric Conflict
+Rate to measure the percent of disagreement after change the position of two candidate responses.
+Their analytical experiments reveal that the degree of positional bias fluctuates depending on the
+disparity in response quality and the preferred position varies with different LLMs. For instance,
+GPT-4 tends to favor the first position, while ChatGPT shows a preference for the second position.
+Compassion-fade bias describes the effect of the model names . This tendency oc-
+curs when we explicitly provide model names; for instance, evaluators may be inclined to give
+higher scores to results labeled as “gpt-4”. This tendency underscores the necessity of anonymous
+evaluation.
+Style Bias refers to the tendency towards certain text style. As revealed in , evaluator may
+also prefer visually appealing content, regardless of its actual validity, such as the text with emoji.
+Furthermore, LLM evaluators may favor response with certain emotional tones, such as cheerful,
+sad, angry, and fearful, which is defined as sentiment bias .
+Length Bias refers to the tendency to favor responses of a particular length, such as a preference
+for more verbose responses which is also known as verbosity bias . Length bias
+can be revealed by rephrasing one of the original response into a more verbose one . Even
+though these expansions do not introduce new information, there is still concern regarding changes
+to the original response in terms of perplexity, fluency, or style. Alternatively, previous study 
+investigated this bias by comparing multiple sampled responses and revealed a statistical tendency
+towards longer answers. However, ensuring the comparable quality of multiple samples remains a
+challenging problem.
+Concreteness Bias reflects that LLM evaluators favor responses with specific details, including
+citation of authoritative sources, numerical values and complex terminologies, which is called
+authority bias  or citation bias .
+. The negative effects of concreteness bias arises from the neglect of the factual correctness of
+these details, thereby encouraging hallucination .
+4.2.3
+Challenges. To advance the development of LLM-as-a-Judge systems, future efforts should
+address two key challenges: (i) Need for Systematic Benchmark. Due to the diversity of biases, it is
+crucial to propose a systematic benchmark to evaluate the extent of various biases. As shown in
+Table 1, EVALBIASBENCH  was proposed as a test set to measure six types of bias. Other work
+ is dedicated to proposing a unified bias testing process, including automated perturbation and
+a unified metric. They constructed a bias quantification framework CALM, which covers 12 types
+of bias. Despite these efforts, there is still no systematic benchmark and dataset that includes all
+types of biases. (ii) Challenges of Controlled Study. When conducting an investigation into a certain
+type of bias, it is challenging to isolate the specific direction of interest from other biases and
+quality-related characteristics. For instance, in the case of position bias, lengthening the response
+could potentially alter the style, fluency, and coherence, or even introduce new biases such as
+self-enhancement bias. Additionally, the tendency for GPT-4 to favor its own responses over those
+of GPT-3.5 can be interpreted as either self-enhancement bias or a proper tendency towards higher
+quality text. Therefore, it is essential for analytical work to carefully control for these variances.
+4.3
+Adversarial Robustness
+Adversarial robustness refers to the ability of a model to withstand deliberate attempts to manipulate
+the scores through carefully crafted inputs. Unlike bias evaluations (Section 4.2) which mainly
+focus on naturally occurring samples, adversarial robustness involves samples intentionally crafted
+to manipulate scoring, such as inserting phrases that artificially enhance scores. Robustness is
+crucial because insufficient robustness allows trivial manipulations to deceive the evaluators and
+to undermine the evaluation of text quality. Ensuring robust evaluators is essential for maintaining
+accurate and reliable assessments, particularly in high-stakes applications.
+Research  constructed a surrogate model from the black-box LLM-evaluator and the learn
+a adversarial attack phrases based on it. The evaluation score can be drastically inflated by
+universally inserting the learned attack phrases without improving the text quality. Similarly, work
+by Lee et al.  introduced EMBER, a benchmark that revealed biases in when assessing outputs
+with epistemic markers, such as expressions of certainty or uncertainty. Furthermore, other work
+ demonstrated that even a "null model" that outputs a constant response irrelevant to input
+instructions can achieve high win rates for various LLM-as-a-judge methods. Several recent works
+ proposed to increase the evaluation score by adding the majority opinions, such as
+“90 Other research  evaluated robustness against meaningless statement in the System
+Prompt, e.g., “"Assistant A loves eating pasta”. These works revealed that LLM-as-a-judge are
+still insufficiently robust against interference irrelevant to text quality. Defensive measures like
+the perplexity score  can only detect limited types of adversarial examples. Therefore,
+constructing more robust LLM-as-a-judge is a crucial research direction for the future.
+5
+META-EVALUATION EXPERIMENT
+In Section 3, we have introduced the improvement strategies adopted by researchers in existing
+LLM-as-a-judge works to improve the evaluation capabilities of LLM. Although numerous works
+have proposed meta-evaluation benchmarks to assess the performance of LLMs in evaluation tasks,
+as shown in Table 1, there is still a lack of meta-evaluation of wh ether these improvement strategies
+effectively optimize LLM evaluators and which dimensions of evaluation performance are being
+enhanced. Some improvement strategies may fail to improve the LLM evaluators’ performance or
+mitigate biases in practical use, leading to computing waste.
+
+In this section, based on the benchmarks mentioned in Section 4, we designed a robust and scalable
+meta-evaluation tool as shown in Fig. 14, and conducted a simple meta-evaluation experiment
+on the improvement strategies summarized in Section 3, examining their effectiveness from the
+perspectives of biases and agreement with human evaluation.
+5.1
+Experiment Settings
+5.1.1
+Evaluation Dimensions and Benchmarks. The most direct metric to reflect the quality of
+automatic evaluation is the alignment with human evaluation. We use LLMEval2  to assess the
+alignment of LLM-as-a-judge with human evaluations. LLMEval2 is the largest and most diverse
+evaluation benchmark for LLM-as-a-judge to date, with 2,553 samples compiled from multiple data
+sources with human-annotated preferences. Each sample consists of a question, a pair of candidate
+responses, and a human label indicating the preferred response.
+Bias is also a crucial dimension for assessing the quality of LLM-as-a-judge evaluation results.
+We use EVALBIASBENCH to measure six types of biases in LLM-as-a-judge, including length
+bias, concreteness bias, empty reference bias, content continuation bias, nested instruction bias,
+and familiar knowledge bias. EVALBIASBENCH consists of 80 samples, each containing a question,
+a pair of candidate responses, and a label indicating the correct response without bias influence. In
+addition to the six types of biases, we also evaluated position bias. The meta-evaluation samples for
+position bias are the paired samples constructed by swapping the position of candidate responses
+within prompts in samples of LLMEval2 and EVALBIASBENCH.
+5.1.2
+Evaluation Metrics. For the alignment with human evaluation, we use Percentage Agree-
+ment Metric for evaluation, as shown in Section 4.1. For biases except for position bias, we
+use Accuracy for evaluation, which represents the proportion of samples where LLM-as-a-judge
+selects the correct candidate response annotated in EVALBIASBENCH.
+For position bias, we use Position Consistency as the metric, which quantifies how frequently
+the LLM-as-a-judge selects the same response after swapping the position of candidate responses.
+5.1.3
+Target LLMs and Strategies. For LLMs, we selected six LLMs commonly used in the automatic
+evaluation, including closed-source LLMs GPT-4, GPT-3.5, and open-source LLMs Qwen2.5-7B,
+LLaMA3-8B, Mistral-7B, and Mixtral-8×7B.
+For improvement strategies, we selected Providing Evaluations with Explanations, Self Validation,
+Summarize by Multiple Rounds, and Vote by Multiple LLMs, since these strategies are all straight-
+forward and relatively common in many works. We adopt GPT-3.5 as the base evaluator for the
+meta-evaluation of these improvement strategies.
+5.1.4
+Model Configuration. For closed-source LLMs, we interact using OpenAI’s official APIs. The
+model versions we selected are GPT-4-turbo and GPT-3.5-turbo, specifically referencing gpt-4-
+turbo-2024-04-09 and gpt-3.5-turbo-0125 respectively6.
+For open-source LLMs, we adopt Qwen2.5-7B-Instruct7, Meta-Llama-3-8B-Instruct8, Mistral-
+7B-Instruct-v0.39, Mixtral-8×7B-Instruct-v0.110, deployed on an Ubuntu machine equipped with a
+40GB NVIDIA A100 GPU.
+To stabilize the evaluation results of LLMs, we set the hyper-parameter temperature to 0 to
+reduce the impact of randomness in LLMs’ output. For Summarize by Multiple Rounds, we conduct
+5 rounds for each sample and verify the effects of three different processing methods for results
+of multiple rounds: majority voting(- majority@5), taking the mean score(- mean@5), and taking
+the best score(- best@5). For Vote by Multiple LLMs, we conduct experiments on two settings, each
+involving three LLMs. Setting 1 consists of GPT-4-turbo, GPT-3.5-turbo, and LLaMA3-8B-Instruct,
+while setting 2 consists of GPT-4-turbo, GPT-3.5-turbo, and Qwen2.5-7B-Instruct.
+5.2
+Experiment Results and Analysis
+5.2.1
+Comparison with Different LLMs. The experiment results on different LLMs are shown in
+Table 2. Comparing the evaluation performance of different LLMs, we found GPT-4 outperformed
+other LLMs with a large margin across all meta-evaluation dimensions and showed fewer biases.
+Therefore, when conditions allow, using GPT-4 as an automated evaluator may obtain more
+objective and less biased evaluation results. For open-source LLMs, we found that Qwen2.5-7B-
+Instruct showed exceptional evaluation capabilities, outperforming other open-source LLMs in
+the experiments. Moreover, it surpassed GPT-3.5-turbo in most dimensions except for Position
+Only valid responses are counted when
+calculating the accuracy, while samples that couldn’t receive responses due to triggering Azure OpenAI’s
+content management policy are excluded. So there are some differences in the total values of different models.
+Bias and Nested Instruction Bias, indicating that it can be a promising choice as an open-source
+LLM-as-a-Judge, with the potential to serve as a robust base model for specialized evaluators in
+specific scenarios.
+Additionally, we observed that, apart from Concreteness Bias and Content Continuation Bias, the
+performance of LLMs except GPT-4-turbo was generally poor, particularly in the Length Bias. Even
+GPT-4-turbo experienced substantial performance degradation in Empty Reference Bias and Nested
+Instruction Bias. While Position Bias can be mitigated by swapping the positions of the evaluation
+contents, addressing other biases may require researchers to explore more effective evaluation
+strategies. Meanwhile, we also observed that there was not much difference in alignment with
+humans among different LLMs in the experiments, and all of them showed significant room for
+improvement.
+5.2.2
+Comparison with Different Strategies. Table 4 shows the effectiveness of different improve-
+ment strategies for enhancing the evaluation performance of GPT-3.5-turbo. The results reveal that
+not all evaluation strategies effectively improve LLM-as-a-judge’s evaluation outcomes. Providing
+with Explanation (w/ explanation) provides interpretability by offering reasons alongside evaluation
+scores or selections, which aids in logical backtracking during human review. However, in terms of
+evaluation performance and bias mitigation, it generally has a negative impact. This performance
+decline is speculated to be caused by deeper biases introduced by self-explanation. Self Validation
+(w/ self-validation) shows minimal effectiveness, likely due to the LLMs’ overconfidence, which
+may limit its re-evaluation efforts during self-validation. We will further discuss this limitation in
+Section 8.1.
+. Summarize by Multiple Rounds with majority voting (w/ majority@5) is a strategy with clear
+benefits, showing improvements across multiple dimensions. It suggests that taking the major-
+ity voting results from repeated evaluations helps reduce the impact of randomness in LLMs,
+thereby addressing bias issues. However, Summarize by Multiple Rounds with taking mean score (w/
+mean@5) or with taking best score (w/ best-of-5) did not improve the evaluation performance and
+even had some adverse effects. Compared to w/ majority@5, which selects the major result from
+multiple rounds, w/ mean@5 might include results with biases in the mean score calculation, and
+similarly w/ best-of-5 could potentially select overly high scores influenced by biases. Therefore,
+the latter two strategies do not effectively mitigate the impact of biases on automated evaluation.
+The evaluation results of Vote by Multiple LLMs (multi LLMs set 1 and set 2) are closely related
+to the LLM selection. Comparing set 1 and set 2, where LLaMA3-8B-Instruct was replaced by
+Qwen2.5-7B-Instruct in set 2, it revealed significant differences in performance across various
+dimensions. In set 1, the poor performance of GPT-3.5-turbo and LLaMA3-8B-Instruct in the
+Length Bias negatively impacted the overall performance, whereas in set 2, the performance in
+this dimension was better, which was aligned with Qwen2.5-7B-Instruct. Similar trends were
+observed in dimensions like Position Bias, Familiar Knowledge Bias, and so on. This suggests that
+when multiple LLMs are adopted for joint evaluation, the differences between their evaluation
+performances must be carefully considered.
+5.2.3
+Evaluation of Reasoning LLM-as-a-Judge. As discussed in Sections 2.4 and 2.5, judgment
+serves as the foundation for effective reasoning capabilities. In other words, models with stronger
+reasoning capabilities are generally better equipped to perform as reliable judges. To validate
+this assumption, we conducted evaluations on several reasoning LLMs including o1-mini, o3-
+mini, Gemini-thinking and Deepseek-R1. The results in Tables 2 and 3 provide key insights into
+the performance of reasoning-focused LLMs. While these models—gemini-2.0-thinking, o1-mini,
+o3-mini and deepseek r1—demonstrate competitive alignment and accuracy relative to the
+top-performing GPT-4-turbo, their improvements in tasks requiring human alignment are
+not as pronounced as expected.
+GPT-4-turbo remains the benchmark for alignment, achieving the highest accuracy rates of
+68.47 Among reasoning-enhanced models, gemini-2.0-thinking shows strong performance in the
+human=model2 scenario, achieving an accuracy of 78.27 These results indicate that reasoning-
+enhanced LLMs provide meaningful advancements over baseline models but fall short of
+delivering consistent advantages in alignment-related tasks, suggesting room for further
+optimization in this area.
+5.2.4
+Summary. Due to the inherent capabilities and potential risks of LLMs, common improvement
+strategies for LLM-as-a-judge are not fully effective in improving the evaluation performance or
+mitigating biases. The limitations and challenges will be further discussed in Section 8.
+Based on the current experimental analysis, an empirical strategy for pairwise comparison
+evaluation tasks is to select more powerful LLMs and to adopt two evaluation strategies: one
+is swapping the positions of the evaluation contents, the other is taking the majority
+voting results from multiple rounds of evaluation, which can effectively mitigate biases. As
+for improving the alignment with humans, further exploration is still needed.
+6
+LLM-AS-A-JUDGE AND O1-LIKE REASONING ENHANCEMENT
+When faced with a challenging problem, humans often spend considerable time and effort reflecting
+on various possibilities before arriving at a solution. In a similar fashion, o1, an advanced model
+developed by OpenAI, engages in a structured chain of thought to solve complex tasks. This
+process of deliberate reasoning allows o1 to continuously refine its approach , step by step,
+. as it navigates through difficult scenarios. A key factor in enhancing o1’s reasoning is the
+integration of LLM-as-a-Judge, which evaluates the model’s reasoning paths at each stage. As o1
+works through a problem, the judge provides feedback that helps the model improve by pointing out
+inconsistencies, suggesting corrections, and identifying simpler ways to break down difficult tasks.
+By using the feedback from its own evaluations, much like a constitutional AI framework, o1 is able
+to adapt its reasoning strategies and enhance its performance. Through reinforcement learning,
+o1 fine-tunes its strategies, learning not only from its successes but also from its mistakes. The
+combination of LLM-as-a-Judge, reinforcement learning, and the feedback loop from constitutional
+evaluation allows o1 to dynamically adjust its reasoning, ensuring that the model continuously
+improves its ability to solve complex problems over time. This synergy between reasoning and
+judgment, combined with continuous feedback, drives o1’s advanced problem-solving capabilities.
+In this process, we can observe two ways in which LLM-as-a-Judge evaluates both Reasoning and
+Thinking. The first method involves evaluating the reasoning process during the training phase,
+where LLM-as-a-Judge provides feedback that is used to fine-tune the model through reinforcement
+learning, enhancing its reasoning ability. This feedback helps o1 refine its approach, identify errors,
+and break down complex tasks into more manageable components. The second method occurs
+during test time, where LLM-as-a-Judge dynamically evaluates the model’s reasoning outputs,
+providing real-time feedback that further improves the model’s performance. What both methods
+share is their ability to offer o1 continuous feedback, whether it is positive or negative, which
+drives a process of self-improvement. By incorporating this feedback into its reasoning process, o1
+is able to iteratively adjust its approach and learn from its mistakes. This cycle of reflection and
+correction enhances the model’s ability to think critically and solve increasingly complex problems.
+The synergy between the two evaluation strategies—during both training and testing—creates
+a powerful feedback loop that allows o1 to dynamically optimize its reasoning and thinking
+capabilities over time, leading to significant advancements in its problem-solving abilities.
+Constitutional AI , which was used to build DeepSeek-R1 can be seen as a specific form of
+LLM-as-a-Judge, where the model uses its own evaluations, such as voting results, as feedback to
+guide its optimization. In this approach, o1 evaluates its reasoning through internal assessments,
+refining its decisions based on predefined principles. This self-generated feedback loop helps o1
+correct errors and improve its performance over time, without needing external verification. By
+integrating LLM-as-a-Judge within the Constitutional AI framework, o1 continuously adjusts its
+reasoning strategies, leading to better problem-solving abilities through self-improvement and
+reinforcement learning.
+. Relationship Between LLM-as-a-Judge and Reasoning. Reasoning, as a cognitive process,
+involves applying logic and evidence to derive conclusions. It is central to intellectual tasks such as
+decision-making, problem-solving, and critical analysis. Reasoning requires evaluating multiple
+possibilities and determining the most logically sound and coherent path. In contrast, LLM-as-a-
+Judge refers to the use of LLMs to perform judgment tasks, such as evaluating, scoring, ranking,
+or selecting optimal answers based on generated outputs. This concept parallels a judge’s role
+in ensuring fairness, accuracy, and coherence in competitive contexts. Although reasoning and
+judgment are separate concepts, they are closely connected. As shown in Figure 15, reasoning
+frequently relies on judgment to evaluate intermediate steps, improve logic, and guarantee clarity
+in its results. When the process involves an infinite number of judgments, we can consider
+it as a process that approximates both reasoning and thinking. At the same time, effective
+judgment relies on strong reasoning capabilities to evaluate options against a set of logical criteria,
+which we discussed in Section 2.5 and Section 5.2.3. Therefore, LLM-as-a-Judge not only evaluates
+outputs but also enhances the reasoning process by helping to identify the most coherent, accurate
+solutions.
+7
+APPLICATIONS
+LLMs’ abilities as evaluators have gained widespread recognition in specialized fields, especially in
+complex, qualitative areas like legal texts, mathematical reasoning, and scientific research .
+This section reviews recent developments in LLM-as-a-judge applications across finance, law,
+science, and other industries, investigating how domain knowledge and LLM evaluators can further
+expand their impact in critical areas.
+7.1
+Machine Learning
+7.1.1
+NLP. LLMs have been successfully employed as evaluators in several NLP tasks, including
+sentiment analysis, machine translation, and text summarization. In sentiment analysis, numerous
+biases influencing LLM-based judgments have been identified, prompting the creation of automated
+frameworks to systematically quantify these biases.
+Text Generation Text generation tasks, such as dialog response generation, summarization,
+story creation, and creative writing, require content that is safe, accurate, and contextually relevant,
+though there isn’t a single "correct" answer . Unlike traditional metrics-based evaluations,
+LLM-as-a-judge offers a nuanced, adaptable, and customized assessment. According to Zheng et al.
+, LLMs like GPT-4 can evaluate text generation comparably to humans. This method has
+been used to evaluate outputs from single models and to compare multiple models in competitive
+settings. For instance, Gao et al.  employ ChatGPT for human-like summarization evaluation,
+while Wu et al.  propose a comparison-based framework where LLMs act as judges to evaluate
+summarization quality.
+Modern LLMs excel at generating detailed, long-form responses, but longer outputs increase
+the risk of hallucinations. To address this, Cheng et al.  and Zhang et al.  use GPT-4 to
+identify logically structured yet nonsensical statements. Additionally, Wang et al.  propose
+a critique-based system to evaluate hallucinations by selecting relevant evidence and providing
+detailed critiques. Beyond hallucinations, generating harmful or unsafe responses is a significant
+concern. To tackle this, Li et al.  introduce MD-Judge and MCQ-Judge for evaluating safety-
+related QA pairs, focusing on queries designed to provoke unsafe responses. However, an overly
+cautious approach can lead to excessive refusal responses, affecting user experience. To explore
+this, Xie et al.  conduct a meta-evaluation of various LLM-as-a-judge frameworks, assessing
+refusal tendencies in response to potentially unsafe queries. Additionally, Yu et al.  introduce
+an LLM-based answer extractor to accurately identify critical parts of answers in text generation,
+. and An et al.  propose L-Eval, a framework for standardized evaluation of long-context language
+models, followed by Bai et al.  who use LLM-as-a-judge to filter evaluation data for long-context
+LLMs.
+Recent studies have also used LLM-as-a-judge to evaluate the general capabilities of generative
+models through debate-based frameworks. For example, Chan et al.  introduce a multi-agent
+debate framework to facilitate autonomous discussions and assess the quality of generated responses
+in tasks. Similarly, Moniri et al.  propose an automated debate framework to evaluate LLMs
+on domain knowledge, problem definition, and inconsistency recognition.
+Reasoning Enhancing the reasoning capabilities of LLMs can overcome the limitations of
+scaling laws, unlocking their full potential. Effective reasoning is essential for tackling complex
+problems, making informed decisions, and delivering accurate, context-aware responses. Wei et al.
+ introduce Chain-of-Thought (CoT) prompting to facilitate step-by-step reasoning. More
+sophisticated cognitive structures  have been proposed to further enhance reasoning,
+yet selecting a reliable reasoning path remains a significant challenge. LLM-as-a-judge has been
+employed to address this issue.
+Some studies focus on sample-level reasoning path selection. Gao et al.  present a strategy
+evaluator for assessing candidate strategies. Kawabata and Sugawara  propose REPS (Rationale
+Enhancement through Pairwise Selection), which uses pairwise self-evaluation to select valid
+rationales. Lahoti et al.  demonstrate that LLMs can identify and enhance response diversity by
+aggregating multiple critiques. In multi-agent frameworks, Liang et al.  introduce multi-agent
+debating (MAD), where a judge LLM selects the most reasonable response. Similarly, Li et al. 
+utilize a judge LLM in layer-based multi-agent collaboration to improve response quality and
+efficiency.
+For step-level reasoning path selection, LLMs act as process reward models (PRMs) to evaluate
+state scores. Creswell et al.  break down reasoning into Selection and Inference, using LLMs to
+judge potential reasoning traces. Xie et al.  propose the Kwai-STaR framework, transforming
+LLMs into state-transition reasoners for mathematical reasoning. Lightman et al.  train LLMs as
+PRMs for inference-time supervision and best-of-N sampling. Setlur et al.  introduce process
+advantage verifiers (PAVs) to generate rewards based on the likelihood of future correct responses.
+Advanced cognitive structures are also simulated; Hao et al.  use LLMs as a world model
+with Monte Carlo Tree Search (MCTS) for deliberate path selection. Besta et al.  model LLM
+outputs as graphs to evaluate coherence and logical reasoning. Additionally, critique-based LLM
+judges  provide detailed feedback to enhance the reasoning process.
+Yao et al.  pioneered the use of LLMs in an interleaved manner to generate reasoning
+traces and task-specific actions. Reasoning traces guide the model in updating action plans, while
+actions facilitate interaction with external sources. Building on this, Yang et al.  introduced
+Auto-GPT, which leverages LLM-as-a-judge to enhance tool usage accuracy. By integrating a variety
+of external tools, LLMs become more versatile, improving planning performance through judicious
+tool selection. Sha et al.  explored the potential of LLMs in decision-making for complex
+autonomous driving scenarios, requiring human-like commonsense reasoning. Zhou et al. 
+employed a self-discovery process where LLMs judge queries and select the most suitable reasoning
+structure for subsequent inference.
+Retrieval The role of LLM-as-a-judge in retrieval encompasses both traditional document
+ranking and dynamic Retrieval-Augmented Generation (RAG) approaches. In traditional retrieval,
+LLMs enhance ranking accuracy through advanced prompting techniques, enabling effective
+document ordering with minimal labeled data. RAG frameworks leverage LLMs’ ability to generate
+content guided by retrieved information, supporting applications requiring complex or evolving
+knowledge integration.
+. Recent studies have explored LLMs as judges for document ranking, aiming to boost precision
+and reduce reliance on extensive training data. Zhuang et al.  embed fine-grained relevance
+labels within LLM prompts, enabling models to distinguish subtle relevance variations for refined
+document ordering. Innovations in listwise ranking include Ma et al. ’s Listwise Reranker
+with a Large Language Model (LRL), which reorders document identifiers without task-specific
+training data. Zhuang et al.  introduce a Setwise prompting strategy for zero-shot ranking,
+enhancing efficiency without sacrificing performance. To address positional biases, Tang et al. 
+propose permutation self-consistency, averaging multiple list orders to yield order-independent
+rankings. Qin et al.  critique pointwise and listwise ranking prompts, proposing Pairwise
+Ranking Prompting (PRP) with medium-sized, open-source LLMs as a cost-efficient alternative to
+larger models.
+Recent advancements in RAG have explored LLMs’ capacity for self-evaluation and improvement
+without annotated datasets or parameter adjustments. Tang et al.  propose Self-Retrieval, con-
+solidating information retrieval within a single LLM using natural language indexing, transforming
+retrieval into a document generation and self-assessment process. In question answering, LLMs are
+increasingly used as evaluative agents. Rackauckas et al.  introduce an LLM-based evaluation
+framework generating synthetic queries from user interactions and domain-specific documents,
+with LLMs evaluating retrieved documents and ranking RAG agent variants via RAGElo. Zhang
+et al.  study LLMs’ ability to assess relevance versus utility in open-domain QA, demonstrating
+effective distinction and adaptability with counterfactual passages.
+Domain-specific RAG systems reveal LLMs’ potential to navigate complex queries by integrating
+specialized knowledge structures. Wang et al.  present BIORAG, enhancing vector retrieval
+with hierarchical knowledge structures and a self-aware evaluated retriever. Li et al.  introduce
+DALK, combining an LLM with a continuously evolving Alzheimer’s Disease knowledge graph,
+using self-aware knowledge retrieval for noise filtering. Jeong et al.  propose Self-BioRAG,
+adapting RAG principles to biomedical applications Liu et al. , with LLMs selecting the best
+evidence for answer generation.
+7.1.2
+Social Intelligence. As LLM capabilities advance, machines are increasingly taking on tasks
+once deemed exclusive to humans, particularly in context-specific domains. A notable area is social
+intelligence, where models must navigate complex social scenarios involving cultural values, ethical
+principles, and social impacts. For instance, Xu et al.  assess the social intelligence of LLMs,
+noting that despite significant progress, these models still fall short compared to their academic
+problem-solving abilities. Similarly, Zhou et al.  introduce SOTOPIA and SOTOPIA-EVAL to
+simulate intricate social interactions among LLM agents and evaluate their social intelligence. In
+their study, GPT-4 serves as a stand-in for human judgment, assessing goal completion, financial
+management, and relationship preservation within these simulated interactions.
+7.1.3
+Multi-Modal . In the field of multi-modal AI, benchmarks have been created to assess LLM-
+based systems that function across text and vision modalities. These benchmarks have enabled the
+evaluation of tasks such as image captioning and mathematical reasoning, where LLMs aligned with
+human preferences in pairwise comparisons but performed poorly in scoring and batch ranking
+. For Chinese multi-modal alignment, benchmarks have identified challenges in coherence and
+reasoning, leading to the proposal of a calibrated evaluation model that achieves greater consistency
+than existing systems . Furthermore, advancements in multi-modal and multi-agent systems
+have been reviewed, emphasizing collaboration mechanisms to improve rationality and minimize
+biases . Xiong et al.  investigate the use of LLM-as-a-judge to assess the performance of
+multimodal models, offering both a final score and the rationale behind the evaluations to enhance
+transparency and consistency. Chen et al.  introduce the first benchmark for the automatic
+. to evaluate 
+the viability of creative ideas.
+7.2
+Other Specific Domains
+7.2.1
+Finance. LLMs have demonstrated significant potential in the finance domain, particularly
+in tasks such as forecasting, anomaly detection, and personalized text generation , thereby
+driving an increasing demand for LLM evaluators.
+In the context of LLM-as-a-judge applications within finance, expert knowledge is crucial for
+domain-specific evaluations. Current research can be divided into two areas: one focuses on de-
+signing LLM-based evaluators that leverage expert knowledge for specific tasks. For instance, Brief
+et al. (2024) conducted a case study on multi-task fine-tuning in finance to enhance LLM perfor-
+mance , while Yu et al. (2024) introduced FinCon, a multi-agent system that uses conceptual
+verbal reinforcement to improve financial decision-making . The second area of research aims
+to provide benchmarks to evaluate and enhance the understanding of domain-specific knowledge
+by LLMs. These benchmarks include UCFE  based on user feedback, IndoCareer: a dataset
+of professional exam questions , and AI-generated domain-specific evaluation sets . In
+quantitative investment, LLM-as-a-judge approaches have demonstrated value in refining and
+enhancing LLM-generated trading signals.  (Figure 17) proposes a two-layer architecture for
+generating self-improving trading signals. Their system employs a dual-LLM setup in the inner
+loop, where one LLM generates trading ideas while another serves as a judge to evaluate and refine
+them. The outer loop incorporates an additional LLM judge that provides comprehensive reviews
+based on quantitative metrics such as information coefficient and Sharpe ratio, ensuring trading
+signals meet rigorous performance standards.
+Moreover, the concept of LLM-as-a-judge shows promising applications in credit scoring 
+and Environmental, Social, and Governance (ESG) scoring . This work remains in its early
+. Real Environment
+7.2.2
+Law. LLMs have shown growing capabilities in providing professional advice in specialized
+fields such as legal consultation, particularly excelling in tasks like text summarization and legal
+reasoning. However, compared to other fields, the legal sector is more concerned about potential
+biases and factual inaccuracies within LLMs. Similar to the finance domain, existing research in
+law can be divided into two main categories.
+The first category focuses on developing LLM evaluators specifically for legal applications by
+addressing professional limitations or designing evaluators themselves. For instance,  employ
+general LLMs with few-shot expert prompts to effectively simulate annotation processes for legal
+fact relevance, demonstrating the potential of LLMs as automated judicial evaluators. Cheong et al.
+(2024) propose a four-dimensional framework for constructing responsible LLMs for legal advice,
+emphasizing (a) user attributes and behaviors, (b) the nature of queries, (c) AI capabilities, and (d)
+social impacts . Ryu et al. (2023) developed Eval-RAG, a retrieval-augmented generator (RAG)-
+based evaluator that assesses the validity of LLM-generated legal texts. Testing on a Korean legal
+question-answering task, they found that combining Eval-RAG with traditional LLM evaluation
+methods aligns more closely with human expert evaluations .
+The second category of research involves creating benchmarks for evaluating LLM applicability
+in legal scenarios. Examples include multi-domain evaluation sets, such as the IndoCareer dataset
+for professional exams in Indonesia  and LegalBench, a collaboratively built benchmark for
+assessing legal reasoning capabilities in LLMs across multiple domains and languages . These
+benchmarks are often language-specific due to the unique legal structures and terminologies, such
+as LexEval for Chinese legal texts  and Eval-RAG for Korean . Other benchmarks target
+specific attributes, such as ethics  and harmfulness .
+7.2.3
+AI for Science. LLMs have demonstrated notable potential in scientific fields Tang et al.
+, Zhao et al. , Zhou et al. , especially in areas like medical question-answering and
+mathematical reasoning, where they serve as evaluators to improve accuracy and consistency. In the
+medical field, studies by Brake et al. (2024) and Krolik et al. (2024) showed that models like LLaMA2
+can assess clinical notes and Q&A responses with a level of accuracy approaching that of human
+experts . This approach leverages prompt engineering to embed expert knowledge, enabling
+LLMs to handle complex, nuanced information, which provides a reliable first-line assessment that
+lessens the load on human experts.
+. In mathematical reasoning, reinforcement learning (RL) and cooperative reasoning methods
+further enhance LLM’s capability as an evaluator, especially for theorem-proving tasks . For
+example, WizardMath was introduced by employing RL through step-by-step feedback to refine
+reasoning in mathematical tasks . Zhu et al. (2023) proposed a Cooperative Reasoning (CoRe)
+framework that combines generation and verification to mimic human-like dual-process reasoning,
+enhancing the model’s problem-solving accuracy . Additionally, Lu et al. (2023) developed
+MathVista, a benchmark for evaluating mathematical reasoning in visual contexts, which assesses
+LLMs like GPT-4V on tasks involving mathematical reasoning with visual components . These
+methods highlight the value of combining RL, cooperative reasoning, and prompt engineering in
+improving LLMs’ evaluative and reasoning skills across mathematical reasoning.
+7.2.4
+Others. LLMs have also been employed as evaluators to enhance efficiency and consistency
+across various fields. In software engineering, a method was proposed for using LLMs to evaluate
+bug report summarizations, demonstrating high accuracy in assessing correctness and complete-
+ness, even surpassing human evaluators who experienced fatigue . This approach offers a
+scalable solution for evaluation. In education, automated essay scoring and revising have been
+explored using open-source LLMs, achieving performance comparable to traditional deep-learning
+models. Techniques such as few-shot learning and prompt tuning improved scoring accuracy, while
+revisions effectively enhanced essay quality without compromising original meaning . In
+content moderation, an LLM-based approach was developed to identify rule violations on platforms
+like Reddit, achieving high true-negative rates but encountering challenges with complex rule
+interpretation, emphasizing the necessity of human oversight for nuanced cases . In behavioral
+sciences, the LLM-as-a-Judge framework was evaluated for assessing user preferences based on
+personas, revealing limitations in reliability and consistency due to oversimplified personas, but
+improved significantly through verbal uncertainty estimation, achieving high agreement with
+human evaluations for high-certainty cases . These applications of LLMs as evaluators highlight
+their growing potential in diverse sectors, emphasizing the need for integrating domain-specific
+knowledge and refining methodologies.
+Moreover, LLMs as evaluators demonstrate significant advantages in qualitative assessments
+that are difficult to quantify, such as evaluating service quality, analyzing user experience feedback,
+and assessing creative content like art or literature reviews. LLMs’ capability to understand and
+generate nuanced language makes them well-suited for subjective evaluation tasks traditionally
+requiring human judgment. Future research will focus more on these areas, exploring how LLMs as
+judges can enhance assessment accuracy and consistency where traditional quantitative methods
+fall short.
+8
+CHALLENGES
+In this chapter, we explore the key challenges that arise when utilizing LLMs for evaluation
+tasks, particularly in the context of LLM-as-a-Judge. Despite their growing capabilities, LLMs still
+face significant issues related to reliability, robustness, and their backbone models’ limitations.
+Understanding these challenges is crucial for advancing the use of LLMs in a fair, consistent, and
+reliable manner. We address these concerns under three main themes: reliability, robustness, and
+the need for more powerful backbone models.
+8.1
+Reliability
+Evaluating the reliability of LLMs when used as judges reveals several pressing challenges. Both
+human and LLM judges exhibit biases, which raises concerns regarding the consistency and fairness
+of their evaluations. Specifically, human judges are also found to have inherent bias  and
+. may not even provide reliable answers . As an alternative to humans, LLM evaluations are
+also found to have certain biases, and the annotation results require more evaluation , as we
+discussed in § 4. The bias of LLM-as-a-judge is more due to the fact that LLM is a probabilistic
+model, as we have defined in § 4. Moreover, Reinforcement Learning with Human Feedback (RLHF)
+improves LLM performance by aligning them with human preferences. However, ensuring models
+trained with RLHF  produce robust and consistent outputs remains an ongoing challenge.
+In this section, to better understand reliability, we discuss the reliability issues that arise from
+biases, overconfidence, and challenges in generalization.
+Overconfidence. Instruction-tuned LLMs have been demonstrated to possess the issue of over-
+confidence, which means they tend to offer overly favorable scores when evaluating their own
+responses . The overconfidence is also highly likely to exist in the scenario of LLM-as-a-judge,
+which is also engaged in evaluating the responses generated by LLMs. Consequently, when LLM-
+as-a-judge is utilized with the latest LLMs, which are typically instruction-tuned, the existence and
+impact of overconfidence need to be meticulously examined.
+Fairness and Generalization. Another significant aspect of reliability is fairness and generalization.
+Evaluations by LLM-as-a-judge can exhibit considerable inconsistency depending on the context.
+This is why prompt-based methods are often used to improve LLM-as-a-judge performance. How-
+ever, challenges related to fairness and generalization may arise due to the sensitivity of prompt
+engineering. For example, the order of the examples in the context can significantly affect the
+model’s output, leading to unfair evaluations if the examples are poorly arranged. Moreover, LLMs
+struggle to handle long context windows effectively, often showing degraded performance or priori-
+tizing later examples in the sequence. These issues raise concerns about fairness and generalization
+in LLM-based evaluations.
+8.2
+Robustness
+Despite LLM’s superior power, it is found prone to adversarial attacks , under which
+LLMs can be induced to generate harmful content. While existing works on LLM attacks mainly
+focus on NLG tasks, more attacks on LLM-as-a-judge are relatively under-explored . This means
+that we will face some robustness challenges when using LLM-as-a-Judge, and these risks are
+unknown.
+Addressing these robustness challenges requires a deeper understanding of the specific vulner-
+abilities associated with LLM-as-a-Judge tasks. Unlike traditional adversarial attacks on natural
+language generation (NLG), where the goal is often to mislead the model into generating harmful
+or incorrect outputs, attacks on LLM-as-a-Judge aim to exploit biases, inconsistencies, or loopholes
+in the model’s decision-making processes. For instance, subtle manipulations in input phrasing
+or context framing could potentially lead to significant deviations in judgments, raising concerns
+about reliability in high-stakes applications.
+Currently, we have some methods to defend against such attacks to maintain robustness. These
+approaches mainly involve post-processing techniques, such as response filtering and consistency
+checks, which are essential for improving evaluation quality. However, these techniques still face
+significant challenges. One major issue is self-consistency, as LLMs often produce inconsistent
+outputs when evaluating the same input multiple times. Another challenge is random scoring,
+where the model assigns arbitrary or overly positive scores that fail to accurately reflect the true
+quality of the generated outputs. Such limitations undermine the reliability and robustness of these
+defense mechanisms.
+8.3
+Powerful Backbone Model
+Although LLMs show superior performance in text-based evaluation, the field lacks robust multi-
+modal models to effectively serve as reliable judges for multi-modal content. Current multi-modal
+LLMs, such as GPT-4 Vision, still struggle with complex reasoning across different modalities. This
+limitation poses a challenge to achieving reliable evaluations on multi-modal assessment tasks.
+Even in many cases, our LLM cannot complete high-quality evaluation content due to insufficient
+powerful instruction-following ability and reasoning ability for evaluating text content.
+9
+FUTURE WORK
+The Development of  Evaluation Method
+In the AI era , LLM-as-a-Judge systems are increasingly demonstrating their potential to
+assist or even replace human judgment across a wide range of professional domains. Many roles
+inherently require the ability to evaluate, assess, or adjudicate complex scenarios, and LLMs, with
+their advanced data processing and pattern recognition capabilities, are well-suited to support
+or enhance these tasks. As shown in Figure 16, LLMs can serve as versatile evaluators in diverse
+fields . For instance, writers can leverage LLMs to assess the viability and originality of creative
+ideas by analyzing narrative structures and market trends; doctors can use LLMs to diagnose
+conditions and predict outcomes by processing medical records and imaging data ;
+quantitative analysts can employ LLMs to forecast market movements and assess risks by identifying
+patterns in financial data; and judges can rely on LLMs to interpret laws and precedents, aiding
+in the adjudication of legal cases. While LLMs excel in scalable and flexible evaluation, they do
+have limitations. Future work should focus on addressing these limitations while exploring new
+applications and improving the reliability, fairness, and adaptability of LLM-as-a-Judge systems to
+ensure their alignment with societal values and professional standards.
+As shown in Figure 18, the development of evaluation methodologies has evolved significantly
+with the advent of GPT-4, enabling more scalable and flexible approaches to LLM-as-a-Judge
+systems. These evaluation paradigms typically rely on interactions with the environment to obtain
+feedback, which forms the foundation for self-evolution signals. If we can establish reliable LLM-
+as-a-Judge in the future, and further enhance AI’s intelligent performance as a World Model, using
+. World Model-as-a-Judge could make our simulations of the real world more realistic and widely
+reliable. AI can use this approach to achieve self-evolution, potentially enhancing the scaling of
+artificial general intelligence (AGI) by using LLM-as-a-Judge as crucial tools and capabilities.
+9.1
+More Reliable LLM-as-a-Judge
+As highlighted in our Formulation (§ 2) and Strategy (§ 3), LLMs are probabilistic models that
+require extensive research and optimization to enhance their reliability as judges. Although current
+methods have improved the reliability of LLM-as-a-Judge, many challenges, including adaptability
+and robustness, remain unresolved. To enable probabilistic models to deliver evaluations closely
+aligned with real-world scenarios, future research should prioritize refining and implementing LLM-
+as-a-Judge across the evaluation pipeline. There is considerable potential for improving reliability
+in various aspects, including in-context learning, model selection, post-processing techniques,
+and the overall evaluation framework for LLM-as-a-Judge. These efforts should prioritize not
+only enhancing the reliability of assessments but also developing methodologies to systematically
+evaluate and validate the robustness of these assessments. Furthermore, the establishment of
+comprehensive evaluation benchmarks and interpretable analytical tools will be crucial for assessing
+and improving the reliability of LLM evaluators. Finally, the uncertain and evolving nature of
+robustness risks underscores the necessity of proactive mitigation strategies. These strategies
+should include the development of adversarial training techniques tailored to judgment tasks,
+the integration of robust uncertainty quantification methods, and the implementation of human-
+in-the-loop systems to oversee critical decisions. By addressing these challenges, we can build
+more resilient and dependable systems capable of maintaining high levels of reliability even under
+adversarial conditions.
+9.2
+LLM-as-a-Judge for Data Annotation
+In contrast, LLM-as-a-judge is a general technique where you use LLM to approximate human
+labeling. When you ask an LLM to assess qualities like "faithfulness to source," "correctness," or
+"helpfulness," you define what these terms mean in the evaluation prompt and rely on the semantic
+relationships the LLM learned from training data. Despite its wide applications, data annotation
+poses significant challenges for current machine-learning models due to the complexity, subjectivity,
+and diversity of data. This process requires domain expertise and is resource-intensive, particularly
+when manually labeling large datasets. Advanced LLMs such as GPT-4 , Gemini , and
+LLaMA-2  offer a promising opportunity to revolutionize data annotation. LLMs serve as more
+than just tools but play a crucial role in improving the effectiveness and precision of data annotation.
+Their ability to automate annotation tasks , ensure consistency across large volumes of data,
+and adapt through fine-tuning or prompting for specific domains , significantly mitigates
+the challenges encountered with traditional annotation methods, setting a new standard for what
+is achievable in the realm of NLP.
+Whether in the field of scientific research or industry, we are all still suffering from insufficient
+target data and domain-specific data, or situations where the data quality is not high enough.
+Assuming that LLM-as-a-judge can achieve stable performance and be fair and reliable, we can
+use LLM to annotate data in scenarios where data is insufficient to expand the data. In scenarios
+with low data quality, we can assess the data quality through LLM, and label the quality tags to
+achieve the goal of selecting high-quality data. Currently, we have not been able to experimentally
+rely solely on LLM for a reliable evaluation of various scenarios of data; most of the time, we still
+rely on human annotation to ensure professionalism and reliability. LLM-as-a-judge often needs to
+learn from human annotations in order to perform certain labeling tasks.
+9.3
+MLLM-as-a-Judge
+AI systems are evolving into highly versatile and multifunctional entities . Traditionally, spe-
+cialized models were required for distinct language processing tasks, such as sentiment analysis,
+syntactic parsing, and dialogue modeling. However, large language models (LLMs) have demon-
+strated competence across these tasks using a single set of weights . Similarly, advancements
+are being made toward unified systems capable of processing multiple data modalities. Instead
+of employing distinct architectures for processing text, audio, and images, recent models like
+GPT-4o , Gemini , and LLaVA  integrate these capabilities within a single framework.
+These developments highlight a growing trend toward unification in the structure and functionality
+of AI systems, which extends to the emerging paradigm of LLM-as-a-Judge.
+Currently, MLLM-as-a-Judge frameworks  are emerging for evaluating models. However, re-
+search exploring how MLLM-as-a-Judge could be applied to the evaluation of data or agents remains
+limited. Beyond model evaluation, MLLM-as-a-Judge, much like LLM-as-a-Judge, is envisioned to
+have the capability to assess or annotate data, function as a Reward Model, or serve as a Verifier
+within intermediate reasoning processes. These expanded roles would allow MLLM-as-a-Judge to
+contribute more broadly to the AI pipeline.
+The future of evaluation lies in developing robust multi-modal evaluators capable of reasoning
+and assessing complex content spanning text, audio, images, and video. While current multi-modal
+LLMs exhibit promising capabilities, they often lack the reasoning depth and reliability of their
+text-based counterparts. Future research must address these limitations, with a focus on enhancing
+reasoning capabilities, improving reliability, and enabling seamless integration across modalities. A
+practical multi-modal evaluator has the potential to not only advance AI research but also enable
+new applications in areas such as multi-modal content moderation and automated knowledge
+extraction.
+9.4
+More LLM-as-a-Judge Benchmarks
+The development of more comprehensive and diverse benchmarks is also critical for advancing the
+reliability and applicability of LLM-as-a-Judge systems. Future efforts could focus on creating high-
+quality, large-scale datasets that encompass a wide range of scenarios, including domain-specific
+applications, multi-modal content, and real-world complexities. Additionally, benchmarks should
+integrate more detailed and fine-grained evaluation metrics. These improvements will not only
+provide a more holistic understanding of LLM performance but also guide the development of
+methodologies to enhance their capabilities. By establishing rigorous standards and datasets akin
+to ImageNet  in scale and impact, the LLM-as-a-Judge field can achieve deeper insights and
+foster greater innovation.
+9.5
+LLM-as-a-Judge for LLM Optimization
+LLM-as-a-Judge shows substantial promise for advancing LLM optimization. Recent studies 
+have begun incorporating LLM-as-a-Judge into multi-agent frameworks to guide inter-agent interac-
+tions, thereby improving overall decision-making efficiency and quality. In addition, LLM-as-a-Judge
+has been employed in Reinforced Fine-Tuning (ReFT) pipelines , functioning as a crucial scor-
+ing module for evaluating the reasoning processes of models. By flexibly adapting to diverse content
+formats and domains, LLM-as-a-Judge offers a robust and efficient evaluation mechanism for a
+wide range of optimization tasks.
+Despite these encouraging developments, current research efforts are still in their infancy. Future
+work should focus on broadening the application domains and strategies for implementing LLM-
+as-a-Judge, especially in complex, multi-modal scenarios. Furthermore, a systematic assessment
+. of its reliability and generalization capabilities will be critical for fully realizing the potential of
+LLM-as-a-Judge in enhancing model performance and robustness.
+10
+CONCLUSION
+LLM-as-a-Judge has emerged as a promising paradigm for automated evaluation, offering scalability
+and adaptability that surpass traditional expert-driven or metric-based methods. By leveraging
+the reasoning capabilities of large language models, this framework excels in tasks such as text
+quality assessment, model evaluation, and automated data annotation. It is particularly valuable for
+large-scale, efficient, and adaptable evaluation. Its ability to process diverse content formats and
+integrate domain-specific knowledge makes it particularly well-suited for applications in education,
+peer review, and decision-making systems.
+Despite these strengths, several challenges must be addressed to fully realize its potential.
+Ensuring reliability remains a key issue, because probabilistic outputs can introduce inconsistencies,
+overconfidence, and biases inherited from training data. Although techniques RLHF have improved
+alignment with human judgment, they do not eliminate all sources of subjectivity. Moreover,
+ensuring robustness is another critical concern. LLM-as-a-Judge can be susceptible to adversarial
+prompt manipulation and contextual framing biases, potentially causing unintended or unreliable
+evaluations. Finally, generalization across domains and modalities remains a significant hurdle, as
+current models struggle with evaluating multi-modal inputs, reasoning over structured data, and
+adapting to domain-specific evaluation standards.
+To address these challenges, future research should focus on three key areas. First, improving
+reliability requires advancements in self-consistency mechanisms, uncertainty calibration, and bias
+mitigation techniques, ensuring that models provide stable and well-calibrated judgments. Second,
+enhancing robustness involves developing adversarial-resistant evaluation frameworks and refining
+prompt engineering methodologies, reducing sensitivity to context variations. Third, expanding
+generalization capabilities calls for advancing multi-modal reasoning, integrating structured knowl-
+edge representations, and refining domain-adaptive learning strategies, allowing models to handle
+diverse evaluation scenarios more effectively.
+Ultimately, LLM-as-a-Judge is poised to become an integral component of next-generation evalu-
+ation systems, augmenting human expertise rather than replacing it. By addressing the challenges
+of reliability, robustness, and generalization, we can create more trustworthy, adaptive, and compre-
+hensive evaluators, paving the way for their adoption across scientific research, education, industry,
+and beyond.
