@@ -49,7 +49,7 @@ No OpenAI key required. All models are open source and run locally.
 
 - `rag_pipeline.ipynb` – main notebook with all steps
 - `requirements.txt` – list of dependencies
-- `publication_clean.txt` – cleaned version of the PDF source
+- `publication_clean.txt` – cleaned version after manual processing
 - `README.md` – project documentation
 
 ---
